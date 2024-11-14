@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <limits>
 #include <sstream>
-//aa
+
 using namespace std;
 
 string formatNumber(long double number) {
