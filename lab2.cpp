@@ -3,7 +3,8 @@
 #include <iomanip>
 #include <limits>
 #include <sstream>
-// some changes new changes
+#include <functional>
+
 using namespace std;
 
 string formatNumber(long double number) {
@@ -11,7 +12,6 @@ string formatNumber(long double number) {
     out << fixed << setprecision(25) << number;
 
     string str = out.str();
-
     str.erase(str.find_last_not_of('0') + 1, string::npos);
     if (str.back() == '.') {
         str.pop_back();
@@ -21,21 +21,22 @@ string formatNumber(long double number) {
 }
 
 long double XLessThan1(long double x, int n) {
+    if (n <= 3) throw invalid_argument("n must be greater than 3 for XLessThan1.");
     long double mlt = 1;
     for (int i = 2; i <= n - 3; i++) {
-        long double term = (pow(x, 2) + 2 * x) / i;
-        mlt *= term;
+        mlt *= (pow(x, 2) + 2 * x) / i;
     }
     return mlt;
 }
 
 long double XMoreOrEqual1(long double x, int n) {
+    if (n <= 4) throw invalid_argument("n must be greater than 4 for XMoreOrEqual1.");
+    if (x == 0) throw invalid_argument("Division by zero in XMoreOrEqual1.");
     long double sum = 0;
     for (int j = 2; j <= n - 4; j++) {
         long double mlt = 1;
         for (int i = 0; i <= n; i++) {
-            long double term = x - (i * j) / double(i + j) - 7;
-            mlt *= term;
+            mlt *= x - (i * j) / double(i + j) - 7;
         }
         sum += mlt;
     }
@@ -43,61 +44,51 @@ long double XMoreOrEqual1(long double x, int n) {
     return sum;
 }
 
-int main() {
-    char continueProgram;
-
-    do {
-        long double a, b, step;
-        int n;
-
-        cout << setw(30) << "Calculator of equation" << endl;
-        cout << "------------------------------------------------------------------------------------------------------------------------" << endl;
-        cout << "Input the range [a, b]:" << endl;
-
-        cout << "a = ";
-        while (!(cin >> a)) {
-            cout << "Error: please input a valid number for 'a'." << endl;
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "a = ";
+template<typename T>
+T getValidatedInput(const string& prompt, function<bool(T)> validator, const string& errorMessage) {
+    T value;
+    while (true) {
+        cout << prompt;
+        if (cin >> value && validator(value)) {
+            break;
         }
+        cout << "Error: " << errorMessage << endl;
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    }
+    return value;
+}
 
-        cout << "b = ";
-        while (!(cin >> b) || b <= a) {
-            cout << "Error: please input a valid number for 'b' (b must be greater than a)." << endl;
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "b = ";
-        }
+int getValidatedIntInput(const string& prompt, function<bool(int)> validator, const string& errorMessage) {
+    string input;
+    int value;
+    while (true) {
+        cout << prompt;
+        cin >> input;
 
-        cout << "Input step: ";
-        while (!(cin >> step) || step <= 0) {
-            cout << "Error: please input a valid step (must be positive)." << endl;
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "Input step: ";
-        }
-
-        cout << "Input n (n > 6): ";
-        while (true) {
-            if (cin >> n && cin.peek() == '\n' && n > 6) {
+        try {
+            size_t pos;
+            value = stoi(input, &pos);
+            if (pos == input.length() && validator(value)) {
                 break;
             }
-            else {
-                cout << "Error: please input a valid integer for 'n' (n must be greater than 6)." << endl;
-                cin.clear();
-                cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                cout << "Input n: ";
-            }
         }
-        cout << "------------------------------------------------------------------------------------------------------------------------" << endl;
+        catch (...) {
+        }
+        cout << "Error: " << errorMessage << endl;
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    }
+    return value;
+}
 
-        cout << "Calculating function y for each value of x in range [" << a << ", " << b << "] with step " << step << endl;
-        cout << "----------------------------------------" << endl;
-        cout << setw(4) << "x" << setw(50) << "y" << endl;
-        cout << "------------------------------------------------------------------------------------------------------------------------" << endl;
+void calculateAndDisplayResults(long double a, long double b, long double step, int n) {
+    cout << "------------------------------------------------------------------------------------------------------------------------" << endl;
+    cout << setw(4) << "x" << setw(50) << "y" << endl;
+    cout << "------------------------------------------------------------------------------------------------------------------------" << endl;
 
-        for (long double x = a; x <= b; x += step) {
+    for (long double x = a; x <= b; x += step) {
+        try {
             long double result;
             if (x < 1) {
                 result = XLessThan1(x, n);
@@ -105,16 +96,37 @@ int main() {
             else {
                 result = XMoreOrEqual1(x, n);
             }
-
             cout << setw(30) << formatNumber(x) << setw(50) << formatNumber(result) << endl;
         }
-
-        cout << "Do you want to continue? (y/n): ";
-        cin >> continueProgram;
-
-    } while (continueProgram == 'y' || continueProgram == 'Y');
-
-    cout << "Program finished." << endl;
-
-    return 0;
+        catch (const exception& e) {
+            cout << setw(30) << formatNumber(x) << setw(50) << "Error: " << e.what() << endl;
+        }
+    }
 }
+
+int main() {
+    char continueProgram;
+
+    do {
+        cout << "------------------------------------------------------------------------------------------------------------------------" << endl;
+        long double a = getValidatedInput<long double>(
+            "a = ",
+            [](long double value) { return true; },
+            "Please input a valid number for 'a'."
+        );
+
+        long double b = getValidatedInput<long double>(
+            "b = ",
+            [a](long double value) { return value > a; },
+            "b must be greater than a."
+        );
+
+        long double step = getValidatedInput<long double>(
+            "Input step: ",
+            [](long double value) { return value > 0; },
+            "Step must be positive."
+        );
+
+        int n = getValidatedIntInput(
+            "Input n (n > 6): ",
+            [](int value) { return
