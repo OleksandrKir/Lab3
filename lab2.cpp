@@ -129,4 +129,21 @@ int main() {
 
         int n = getValidatedIntInput(
             "Input n (n > 6): ",
-            [](int value) { return
+            [](int value) { return value > 6; },
+            "n must be a valid integer greater than 6."
+        );
+
+        cout << "------------------------------------------------------------------------------------------------------------------------" << endl;
+        cout << "Calculating function y for each value of x in range [" << a << ", " << b << "] with step " << step << endl;
+
+        calculateAndDisplayResults(a, b, step, n);
+
+        // Запит на продовження
+        cout << "Do you want to continue? (y/n): ";
+        cin >> continueProgram;
+
+    } while (continueProgram == 'y' || continueProgram == 'Y');
+
+    cout << "Program finished." << endl;
+    return 0;
+}
