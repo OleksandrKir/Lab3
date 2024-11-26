@@ -138,7 +138,6 @@ int main() {
 
         calculateAndDisplayResults(a, b, step, n);
 
-        // Запит на продовження
         cout << "Do you want to continue? (y/n): ";
         cin >> continueProgram;
 
